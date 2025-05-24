@@ -30,52 +30,65 @@ class PredictPipeline:
 class CustomData:
     def __init__(
         self,
-        rideable_type: str,
-        started_at: str,
-        start_lat: float,
-        start_lng: float,
-        end_lat: float,
-        end_lng: float,
-        member_casual: str
+        campaign_id: int,
+        fb_campaign_id: int,
+        age: str,
+        gender: str,
+        interest1: int,
+        interest2: int,
+        interest3: int,
+        impressions: float,
+        clicks: int,
+        spent: float,
+        total_conversion: float,
+        reporting_start: str,
+        reporting_end: str
     ):
-        self.rideable_type = rideable_type
-        self.started_at = started_at
-        self.start_lat = start_lat
-        self.start_lng = start_lng
-        self.end_lat = end_lat
-        self.end_lng = end_lng
-        self.member_casual = member_casual
+        self.campaign_id = campaign_id
+        self.fb_campaign_id = fb_campaign_id
+        self.age = age
+        self.gender = gender
+        self.interest1 = interest1
+        self.interest2 = interest2
+        self.interest3 = interest3
+        self.impressions = impressions
+        self.clicks = clicks
+        self.spent = spent
+        self.total_conversion = total_conversion
+        self.reporting_start = reporting_start
+        self.reporting_end = reporting_end
 
     def get_data_as_data_frame(self):
         try:
             # Parse the datetime
-            started_at_dt = pd.to_datetime(self.started_at)
+            reporting_start_dt = pd.to_datetime(self.reporting_start)
+            reporting_end_dt = pd.to_datetime(self.reporting_end)
             
-            # Extract features
-            day_of_week = started_at_dt.day_name()
-            hour_of_day = started_at_dt.hour
-            
-            # Create a dummy ended_at for the dataframe (not used in prediction)
-            # This is just to maintain the structure expected by the preprocessor
-            ended_at = started_at_dt
+            # Calculate derived features
+            campaign_duration_days = (reporting_end_dt - reporting_start_dt).days + 1
+            ctr = self.clicks / self.impressions if self.impressions > 0 else 0
+            cpc = self.spent / self.clicks if self.clicks > 0 else 0
+            conversion_rate = 0  # We don't know approved_conversion for prediction
             
             custom_data_input_dict = {
-                "ride_id": ["dummy_id"],  # Placeholder
-                "rideable_type": [self.rideable_type],
-                "started_at": [started_at_dt],
-                "ended_at": [ended_at],
-                "start_station_name": [None],  # Can be None as we'll impute
-                "start_station_id": [None],
-                "end_station_name": [None],
-                "end_station_id": [None],
-                "start_lat": [self.start_lat],
-                "start_lng": [self.start_lng],
-                "end_lat": [self.end_lat],
-                "end_lng": [self.end_lng],
-                "member_casual": [self.member_casual],
-                "day_of_week": [day_of_week],
-                "hour_of_day": [hour_of_day],
-                # ride_duration_minutes will be calculated during preprocessing
+                "ad_id": [1],  # Placeholder
+                "reporting_start": [reporting_start_dt],
+                "reporting_end": [reporting_end_dt],
+                "campaign_id": [self.campaign_id],
+                "fb_campaign_id": [self.fb_campaign_id],
+                "age": [self.age],
+                "gender": [self.gender],
+                "interest1": [self.interest1],
+                "interest2": [self.interest2],
+                "interest3": [self.interest3],
+                "impressions": [self.impressions],
+                "clicks": [self.clicks],
+                "spent": [self.spent],
+                "total_conversion": [self.total_conversion],
+                "campaign_duration_days": [campaign_duration_days],
+                "ctr": [ctr],
+                "cpc": [cpc],
+                "conversion_rate": [conversion_rate]
             }
 
             return pd.DataFrame(custom_data_input_dict)

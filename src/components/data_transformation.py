@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.preprocessing import OneHotEncoder, StandardScaler, LabelEncoder
 from datetime import datetime
 
 from src.exception import CustomException
@@ -24,12 +24,15 @@ class DataTransformation:
 
     def get_data_transformer_object(self):
         '''
-        This function is responsible for data transformation
+        This function is responsible for data transformation for Facebook advertising data
         '''
         try:
-            # Define columns based on the bike ride dataset from Ga.ipynb
-            numerical_columns = ["start_lat", "start_lng", "end_lat", "end_lng"]
-            categorical_columns = ["rideable_type", "member_casual"]
+            # Define columns based on the Facebook advertising dataset
+            numerical_columns = [
+                "campaign_id", "fb_campaign_id", "interest1", "interest2", "interest3",
+                "impressions", "clicks", "spent", "total_conversion"
+            ]
+            categorical_columns = ["age", "gender"]
 
             # Pipeline for numerical columns
             num_pipeline = Pipeline(
@@ -77,22 +80,33 @@ class DataTransformation:
             # Print column names for debugging
             logging.info(f"Train columns: {train_df.columns.tolist()}")
             
-            # Feature engineering
+            # Feature engineering for Facebook advertising data
             for df in [train_df, test_df]:
-                # Convert datetime strings to datetime objects
-                df['started_at'] = pd.to_datetime(df['started_at'])
-                df['ended_at'] = pd.to_datetime(df['ended_at'])
+                # Convert date columns to datetime
+                df['reporting_start'] = pd.to_datetime(df['reporting_start'])
+                df['reporting_end'] = pd.to_datetime(df['reporting_end'])
                 
-                # Calculate ride duration in minutes
-                df['ride_duration_minutes'] = (df['ended_at'] - df['started_at']).dt.total_seconds() / 60
+                # Calculate campaign duration in days
+                df['campaign_duration_days'] = (df['reporting_end'] - df['reporting_start']).dt.days + 1
                 
-                # Filter out negative or extremely long durations (optional)
-                df = df[(df['ride_duration_minutes'] > 0) & (df['ride_duration_minutes'] < 1440)]  # Max 24 hours
+                # Calculate CTR (Click Through Rate)
+                df['ctr'] = df['clicks'] / df['impressions']
+                df['ctr'] = df['ctr'].fillna(0)
+                
+                # Calculate CPC (Cost Per Click)
+                df['cpc'] = df['spent'] / df['clicks']
+                df['cpc'] = df['cpc'].fillna(0)
+                df['cpc'] = df['cpc'].replace([np.inf, -np.inf], 0)
+                
+                # Calculate conversion rate
+                df['conversion_rate'] = df['approved_conversion'] / df['clicks']
+                df['conversion_rate'] = df['conversion_rate'].fillna(0)
+                df['conversion_rate'] = df['conversion_rate'].replace([np.inf, -np.inf], 0)
 
             logging.info("Feature engineering completed")
             
-            # Define target column - we'll predict ride duration
-            target_column_name = "ride_duration_minutes"
+            # Define target column - we'll predict approved_conversion
+            target_column_name = "approved_conversion"
             
             # Separate features and target
             input_feature_train_df = train_df.drop(columns=[target_column_name], axis=1)
