@@ -26,7 +26,7 @@ class DataIngestion:
     def initiate_data_ingestion(self):
         logging.info("Entered the data ingestion method or component")
         try:
-            df=pd.read_csv(r'C:\Users\91635\OneDrive\VS STUDIO\Portfoliio\Kaggle\2025-May\fb\notebook\data\fb.csv')
+            df=pd.read_csv(r'notebook\data\fb.csv')
             logging.info('Read the Facebook advertising dataset as dataframe')
 
             os.makedirs(os.path.dirname(self.ingestion_config.train_data_path),exist_ok=True)
